@@ -29,28 +29,33 @@ class InputData(BaseModel):
 @app.post("/career-map")
 def get_career_map(data: InputData):
     prompt = f"""
-You are an AI career advisor. Based on the student's current skills and degree, suggest:
+You are an AI career advisor. Based on the student's current skills and degree, respond ONLY in this emoji-labeled format — do not add any extra text or notes you can give as many resources as possible:
 
-1. Job roles they are qualified for
-2. Additional skills they need for better roles
-3. Relevant free/paid resources with links
+✅ Qualified Jobs:
+- Job Role 1
+- Job Role 2
+- etc..
 
-Respond in this format:
----
-Qualified Jobs:
-- ...
+⚠️ Skill Gaps:
+- Missing Skill 1
+- Missing Skill 2
+- etc..
 
-Skill Gaps:
-- ...
 
-Learning Resources:
-- ...
----
-Student Info:
+📚 Learning Resources:
+🆓 Free Resources:
+- [Course Title](https://link1)
+- [Another Course](https://link2)
+- etc..
+💰 Paid Resources:
+- [Course Title](https://link1)
+- [Another Course](https://link2)
+- etc..
+
+Now analyze the student profile:
 Skills: {data.skills}
 Degree: {data.degree}
 """
-
     model = genai.GenerativeModel(model_name="gemini-1.5-flash")
     response = model.generate_content(prompt)
 
