@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+.glow-on-hover:hover {
+  box-shadow: 0 0 10px var(--glow-color),
+              0 0 20px var(--glow-color),
+              0 0 30px var(--glow-color);
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+a {
+  
+  color: black; 
+  text-decoration: underline;
+  transition: color 0.2s ease-in-out, text-decoration 0.2s ease-in-out; 
+}
+
+a:hover {
+  color: #1e40af;
+  text-decoration: none;
+}
