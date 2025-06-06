@@ -19,9 +19,13 @@ const CareerForm = () => {
     const [skills, setSkills] = useState<string>("");
     const [degree, setDegree] = useState<string>("");
     const [response, setResponse] = useState<string>("");
+    const [error, setError] = useState<string | null>(null); // State to store error messages
 
     const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
+        setError(null); // Clear previous errors
+        setResponse(""); // Clear previous response
+
         try {
             const res = await fetch("https://career-mapper-fxqd.onrender.com", {
                 method: "POST",
@@ -33,97 +37,41 @@ const CareerForm = () => {
                     degree,
                 }),
             });
-            const data = await res.json();
-            setResponse(data.response);
-        } catch (err) {
-            console.error(err);
-        }
-    };
 
-    const parseResponse = (response: string): ParsedSections => {
-        const sections: ParsedSections = {
-            qualifiedJobs: [],
-            skillGaps: [],
-            roadmaps: {
-                beginner: [],
-                intermediate: [],
-                advanced: []
-            },
-            freeResources: [],
-            paidResources: [],
-            freeLinks: [],
-            paidLinks: []
-        };
-
-        const lines = response.split("\n").map((line: string) => line.trim()).filter((line: string) => line.length > 0);
-        let currentSection: keyof ParsedSections | "learningResources" | "" = "";
-        let currentRoadmapLevel: "beginner" | "intermediate" | "advanced" | "" = "";
-        let isFree: boolean = true;
-
-        console.log("Parsing response:", response); // Debug log
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            console.log(`Line ${i}: "${line}"`); // Debug log
-
-            if (line.startsWith("✅")) {
-                currentSection = "qualifiedJobs";
-                currentRoadmapLevel = "";
-            } else if (line.startsWith("⚠️")) {
-                currentSection = "skillGaps";
-                currentRoadmapLevel = "";
-            } else if (line.startsWith("🗺️")) {
-                currentSection = "roadmaps";
-                currentRoadmapLevel = "";
-            } else if (line.startsWith("📚")) {
-                // This section might not be directly added to sections object,
-                // but it controls the subsequent resource parsing.
-                currentSection = "learningResources";
-                currentRoadmapLevel = "";
-            } else if (line.startsWith("📍")) {
-                if (line.toLowerCase().includes("beginner")) {
-                    currentRoadmapLevel = "beginner";
-                    console.log("Set roadmap level to beginner"); // Debug log
-                } else if (line.toLowerCase().includes("intermediate")) {
-                    currentRoadmapLevel = "intermediate";
-                    console.log("Set roadmap level to intermediate"); // Debug log
-                } else if (line.toLowerCase().includes("advanced")) {
-                    currentRoadmapLevel = "advanced";
-                    console.log("Set roadmap level to advanced"); // Debug log
-                }
-            } else if (line.toLowerCase().includes("free resources")) {
-                isFree = true;
-            } else if (line.toLowerCase().includes("paid resources")) {
-                isFree = false;
-            } else if (line.startsWith("- [") && currentSection === "learningResources") {
-                const match = line.match(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
-                if (match) {
-                    if (isFree) {
-                        sections.freeResources.push(line);
-                        sections.freeLinks.push(match[2]);
-                    } else {
-                        sections.paidResources.push(line);
-                        sections.paidLinks.push(match[2]);
+            if (!res.ok) { // Check if the response was NOT successful (e.g., 405, 500)
+                let errorMessage = `HTTP error! Status: ${res.status}`;
+                try {
+                    const errorData = await res.json(); // Try to parse JSON error from FastAPI
+                    if (errorData && errorData.detail) {
+                        errorMessage = `Error: ${errorData.detail}`;
+                    } else if (errorData) {
+                        errorMessage = `Error: ${JSON.stringify(errorData)}`;
                     }
+                } catch (jsonError) {
+                    // If parsing JSON fails, try to get plain text
+                    const textError = await res.text();
+                    errorMessage = `HTTP error ${res.status}: ${textError || 'Unknown server error'}`;
                 }
-            } else if (line.startsWith("-")) {
-                const content = line.slice(1).trim();
-                if (currentSection === "qualifiedJobs") {
-                    sections.qualifiedJobs.push(content);
-                } else if (currentSection === "skillGaps") {
-                    sections.skillGaps.push(content);
-                } else if (currentSection === "roadmaps" && currentRoadmapLevel) {
-                    // Ensure currentRoadmapLevel is a valid key for sections.roadmaps
-                    sections.roadmaps[currentRoadmapLevel].push(content);
-                    console.log(`Added to ${currentRoadmapLevel}: ${content}`); // Debug log
-                }
+                throw new Error(errorMessage); // Throw an error to be caught by the catch block
             }
-        }
 
-        console.log("Final sections:", sections); // Debug log
-        return sections;
+            const data = await res.json();
+            // Assuming your FastAPI response is like {"response": "..."}
+            if (data && typeof data.response === 'string') {
+                setResponse(data.response);
+            } else {
+                throw new Error("Invalid response format from server.");
+            }
+
+        } catch (err: any) {
+            console.error("Fetch error:", err);
+            setError(err.message || "An unexpected error occurred."); // Set the error message
+        }
     };
 
+    // This line might still cause TypeError if 'response' is empty initially,
+    // or if the data.response was not a string due to the unhandled error in the original code.
+    // With improved error handling above, 'response' should only contain a string on success.
     const { qualifiedJobs, skillGaps, roadmaps, freeResources, paidResources, freeLinks, paidLinks } = parseResponse(response);
 
     return (
@@ -135,8 +83,8 @@ const CareerForm = () => {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-glow:hover {
-                    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 
-                                0 0 40px rgba(255, 255, 255, 0.3), 
+                    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5),
+                                0 0 40px rgba(255, 255, 255, 0.3),
                                 0 0 60px rgba(255, 255, 255, 0.2);
                     transform: translateY(-2px);
                 }
@@ -144,8 +92,8 @@ const CareerForm = () => {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-glow-purple:hover {
-                    box-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 
-                                0 0 40px rgba(168, 85, 247, 0.4), 
+                    box-shadow: 0 0 20px rgba(168, 85, 247, 0.6),
+                                0 0 40px rgba(168, 85, 247, 0.4),
                                 0 0 60px rgba(168, 85, 247, 0.2);
                     transform: translateY(-2px);
                 }
@@ -153,8 +101,8 @@ const CareerForm = () => {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-glow-green:hover {
-                    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 
-                                0 0 40px rgba(34, 197, 94, 0.4), 
+                    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6),
+                                0 0 40px rgba(34, 197, 94, 0.4),
                                 0 0 60px rgba(34, 197, 94, 0.2);
                     transform: translateY(-2px);
                 }
@@ -162,8 +110,8 @@ const CareerForm = () => {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-glow-red:hover {
-                    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 
-                                0 0 40px rgba(239, 68, 68, 0.4), 
+                    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6),
+                                0 0 40px rgba(239, 68, 68, 0.4),
                                 0 0 60px rgba(239, 68, 68, 0.2);
                     transform: translateY(-2px);
                 }
@@ -171,8 +119,8 @@ const CareerForm = () => {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-glow-blue:hover {
-                    box-shadow: 0 0 20px rgba(99, 102, 241, 0.6), 
-                                0 0 40px rgba(99, 102, 241, 0.4), 
+                    box-shadow: 0 0 20px rgba(99, 102, 241, 0.6),
+                                0 0 40px rgba(99, 102, 241, 0.4),
                                 0 0 60px rgba(99, 102, 241, 0.2);
                     transform: translateY(-2px);
                 }
@@ -180,8 +128,8 @@ const CareerForm = () => {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-glow-orange:hover {
-                    box-shadow: 0 0 20px rgba(251, 146, 60, 0.6), 
-                                0 0 40px rgba(251, 146, 60, 0.4), 
+                    box-shadow: 0 0 20px rgba(251, 146, 60, 0.6),
+                                0 0 40px rgba(251, 146, 60, 0.4),
                                 0 0 60px rgba(251, 146, 60, 0.2);
                     transform: translateY(-2px);
                 }
@@ -189,26 +137,26 @@ const CareerForm = () => {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-input:hover {
-                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 
+                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4),
                                 0 0 30px rgba(255, 255, 255, 0.2);
                 }
                 .neon-input:focus {
-                    box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 
+                    box-shadow: 0 0 20px rgba(255, 255, 255, 0.6),
                                 0 0 40px rgba(255, 255, 255, 0.3);
                 }
                 .neon-button {
                     transition: all 0.3s ease-in-out;
                 }
                 .neon-button:hover {
-                    box-shadow: 0 0 20px rgba(147, 51, 234, 0.6), 
-                                0 0 40px rgba(147, 51, 234, 0.4), 
+                    box-shadow: 0 0 20px rgba(147, 51, 234, 0.6),
+                                0 0 40px rgba(147, 51, 234, 0.4),
                                 0 0 60px rgba(147, 51, 234, 0.2);
                     transform: translateY(-2px) scale(1.02);
                 }
                 `
             }} />
             {/* Cosmic Background */}
-            <div 
+            <div
                 className="absolute inset-0 w-full h-full"
                 style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
@@ -229,8 +177,8 @@ const CareerForm = () => {
                     <h1 className="text-5xl font-bold text-white mb-8 text-center tracking-wider">
                         Career Mapper
                     </h1>
-                    
-                    <div 
+
+                    <div
                         className="relative p-8 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 w-full max-w-md neon-glow"
                         style={{
                             background: 'rgba(255, 255, 255, 0.1)',
@@ -277,11 +225,18 @@ const CareerForm = () => {
                     </div>
                 </div>
 
-                {/* Results Section */}
-                {response && (
+                {/* Display Error Message */}
+                {error && (
+                    <div className="mt-8 p-4 bg-red-800 text-white rounded-lg shadow-md text-center">
+                        <p>{error}</p>
+                    </div>
+                )}
+
+                {/* Results Section - only show if there's a response and no error */}
+                {response && !error && (
                     <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8 px-4">
                         {/* Qualified Jobs */}
-                        <div 
+                        <div
                             className="p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-green"
                             style={{
                                 background: 'rgba(34, 197, 94, 0.15)',
@@ -303,7 +258,7 @@ const CareerForm = () => {
                         </div>
 
                         {/* Skill Gaps */}
-                        <div 
+                        <div
                             className="p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-red"
                             style={{
                                 background: 'rgba(239, 68, 68, 0.15)',
@@ -325,7 +280,7 @@ const CareerForm = () => {
                         </div>
 
                         {/* Career Roadmaps */}
-                        <div 
+                        <div
                             className="lg:col-span-2 p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-orange"
                             style={{
                                 background: 'rgba(251, 146, 60, 0.15)',
@@ -392,7 +347,7 @@ const CareerForm = () => {
                         </div>
 
                         {/* Learning Resources */}
-                        <div 
+                        <div
                             className="lg:col-span-2 p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-blue"
                             style={{
                                 background: 'rgba(99, 102, 241, 0.15)',
@@ -443,7 +398,7 @@ const CareerForm = () => {
 
                         {/* Resource Links */}
                         {(freeLinks.length > 0 || paidLinks.length > 0) && (
-                            <div 
+                            <div
                                 className="lg:col-span-2 p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-purple"
                                 style={{
                                     background: 'rgba(168, 85, 247, 0.15)',
@@ -462,10 +417,10 @@ const CareerForm = () => {
                                             <ul className="space-y-2">
                                                 {freeLinks.map((link: string, idx: number) => (
                                                     <li key={idx}>
-                                                        <a 
-                                                            href={link} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
+                                                        <a
+                                                            href={link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
                                                             className="text-blue-300 hover:text-blue-200 underline break-all transition-colors duration-200"
                                                         >
                                                             {link}
@@ -482,10 +437,10 @@ const CareerForm = () => {
                                             <ul className="space-y-2">
                                                 {paidLinks.map((link: string, idx: number) => (
                                                     <li key={idx}>
-                                                        <a 
-                                                            href={link} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
+                                                        <a
+                                                            href={link}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
                                                             className="text-purple-300 hover:text-purple-200 underline break-all transition-colors duration-200"
                                                         >
                                                             {link}
