@@ -25,8 +25,24 @@ class InputData(BaseModel):
     skills: str
     degree: str
 
+# Add root endpoint to handle GET requests to "/"
+@app.get("/")
+def read_root():
+    return {
+        "message": "Career Mapper API is running!",
+        "status": "healthy",
+        "endpoints": {
+            "career_mapper": "/career-mapper (POST)",
+            "health_check": "/health (GET)"
+        }
+    }
 
-@app.post("/career-map")
+# Add health check endpoint
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "career-mapper-api"}
+
+@app.post("/career-mapper")
 def get_career_map(data: InputData):
     prompt = f"""
 You are an AI career advisor. Based on the student's current skills and degree, respond ONLY in this emoji-labeled format — do not add any extra text or notes you can give as many resources as possible. Make sure that the qualified jobs, skill gaps, roadmap and learning resources should match:
