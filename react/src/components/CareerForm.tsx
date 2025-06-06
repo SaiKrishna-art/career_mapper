@@ -27,7 +27,7 @@ const CareerForm = () => {
         setResponse(""); // Clear previous response
 
         try {
-            const res = await fetch("https://career-mapper-fxqd.onrender.com", {
+            const res = await fetch("https://career-mapper-fxqd.onrender.com/career-mapper", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
