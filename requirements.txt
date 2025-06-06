@@ -1,1 +1,5 @@
 git-filter-repo==2.47.0
+fastapi
+uvicorn[standard]
+python-dotenv
+google-generativeai
