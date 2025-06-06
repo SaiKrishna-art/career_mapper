@@ -23,7 +23,7 @@ const CareerForm = () => {
     const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         try {
-            const res = await fetch("http://127.0.0.1:8000/career-map", {
+            const res = await fetch("http://127.0.0.1:8000/career-mapper", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
