@@ -56,7 +56,7 @@ const CareerForm = () => {
         };
 
         const lines = response.split("\n").map((line: string) => line.trim()).filter((line: string) => line.length > 0);
-        let currentSection: keyof ParsedSections | "" = "";
+        let currentSection: keyof ParsedSections | "learningResources" | "" = "";
         let currentRoadmapLevel: "beginner" | "intermediate" | "advanced" | "" = "";
         let isFree: boolean = true;
 

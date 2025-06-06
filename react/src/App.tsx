@@ -1,4 +1,3 @@
-import React from 'react';
 import CareerForm from './components/CareerForm';
 
 function App(){
