@@ -23,7 +23,7 @@ const CareerForm = () => {
     const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         try {
-            const res = await fetch("https://career-mapper-6.onrender.com", {
+            const res = await fetch("https://career-mapper-fxqd.onrender.com", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
