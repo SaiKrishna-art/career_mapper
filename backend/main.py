@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-genai.configure(api_key="")  # This should be your Bard/Gemini API key
+genai.configure(api_key="AIzaSyC5Bnxpe-qNYoc2bS8ay-zsgP5m1VpDaMI")  # This should be your Bard/Gemini API key
 
 app = FastAPI()
 
@@ -29,19 +29,28 @@ class InputData(BaseModel):
 @app.post("/career-map")
 def get_career_map(data: InputData):
     prompt = f"""
-You are an AI career advisor. Based on the student's current skills and degree, respond ONLY in this emoji-labeled format — do not add any extra text or notes you can give as many resources as possible:
-
+You are an AI career advisor. Based on the student's current skills and degree, respond ONLY in this emoji-labeled format — do not add any extra text or notes you can give as many resources as possible. Make sure that the qualified jobs, skill gaps, roadmap and learning resources should match:
 ✅ Qualified Jobs:
 - Job Role 1
 - Job Role 2
 - etc..
-
 ⚠️ Skill Gaps:
 - Missing Skill 1
 - Missing Skill 2
 - etc..
-
-
+🗺️ Career Roadmaps:
+📍 Beginner Level (0-6 months):
+- Learn fundamental skill 1
+- Complete basic project 1
+- Get certification 1
+📍 Intermediate Level (6-18 months):
+- Master advanced skill 1
+- Build portfolio project 1
+- Gain practical experience in area 1
+📍 Advanced Level (18+ months):
+- Specialize in niche area 1
+- Lead projects or mentor others
+- Pursue senior-level opportunities
 📚 Learning Resources:
 🆓 Free Resources:
 - [Course Title](https://link1)
@@ -51,7 +60,6 @@ You are an AI career advisor. Based on the student's current skills and degree, 
 - [Course Title](https://link1)
 - [Another Course](https://link2)
 - etc..
-
 Now analyze the student profile:
 Skills: {data.skills}
 Degree: {data.degree}

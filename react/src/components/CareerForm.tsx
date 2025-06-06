@@ -1,397 +1,508 @@
 import React, { useState } from "react";
 
-import axios from "axios";
-
-
+// Define an interface for the structure of the parsed response sections
+interface ParsedSections {
+    qualifiedJobs: string[];
+    skillGaps: string[];
+    roadmaps: {
+        beginner: string[];
+        intermediate: string[];
+        advanced: string[];
+    };
+    freeResources: string[];
+    paidResources: string[];
+    freeLinks: string[];
+    paidLinks: string[];
+}
 
 const CareerForm = () => {
+    const [skills, setSkills] = useState<string>("");
+    const [degree, setDegree] = useState<string>("");
+    const [response, setResponse] = useState<string>("");
 
-    const [skills, setSkills] = useState("");
+    const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        try {
+            const res = await fetch("http://127.0.0.1:8000/career-map", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    skills,
+                    degree,
+                }),
+            });
+            const data = await res.json();
+            setResponse(data.response);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
-    const [degree, setDegree] = useState("");
+    const parseResponse = (response: string): ParsedSections => {
+        const sections: ParsedSections = {
+            qualifiedJobs: [],
+            skillGaps: [],
+            roadmaps: {
+                beginner: [],
+                intermediate: [],
+                advanced: []
+            },
+            freeResources: [],
+            paidResources: [],
+            freeLinks: [],
+            paidLinks: []
+        };
 
-    const [response, setResponse] = useState("");
+        const lines = response.split("\n").map((line: string) => line.trim()).filter((line: string) => line.length > 0);
+        let currentSection: keyof ParsedSections | "" = "";
+        let currentRoadmapLevel: "beginner" | "intermediate" | "advanced" | "" = "";
+        let isFree: boolean = true;
 
+        console.log("Parsing response:", response); // Debug log
 
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            console.log(`Line ${i}: "${line}"`); // Debug log
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+            if (line.startsWith("✅")) {
+                currentSection = "qualifiedJobs";
+                currentRoadmapLevel = "";
+            } else if (line.startsWith("⚠️")) {
+                currentSection = "skillGaps";
+                currentRoadmapLevel = "";
+            } else if (line.startsWith("🗺️")) {
+                currentSection = "roadmaps";
+                currentRoadmapLevel = "";
+            } else if (line.startsWith("📚")) {
+                // This section might not be directly added to sections object,
+                // but it controls the subsequent resource parsing.
+                currentSection = "learningResources";
+                currentRoadmapLevel = "";
+            } else if (line.startsWith("📍")) {
+                if (line.toLowerCase().includes("beginner")) {
+                    currentRoadmapLevel = "beginner";
+                    console.log("Set roadmap level to beginner"); // Debug log
+                } else if (line.toLowerCase().includes("intermediate")) {
+                    currentRoadmapLevel = "intermediate";
+                    console.log("Set roadmap level to intermediate"); // Debug log
+                } else if (line.toLowerCase().includes("advanced")) {
+                    currentRoadmapLevel = "advanced";
+                    console.log("Set roadmap level to advanced"); // Debug log
+                }
+            } else if (line.toLowerCase().includes("free resources")) {
+                isFree = true;
+            } else if (line.toLowerCase().includes("paid resources")) {
+                isFree = false;
+            } else if (line.startsWith("- [") && currentSection === "learningResources") {
+                const match = line.match(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
+                if (match) {
+                    if (isFree) {
+                        sections.freeResources.push(line);
+                        sections.freeLinks.push(match[2]);
+                    } else {
+                        sections.paidResources.push(line);
+                        sections.paidLinks.push(match[2]);
+                    }
+                }
+            } else if (line.startsWith("-")) {
+                const content = line.slice(1).trim();
+                if (currentSection === "qualifiedJobs") {
+                    sections.qualifiedJobs.push(content);
+                } else if (currentSection === "skillGaps") {
+                    sections.skillGaps.push(content);
+                } else if (currentSection === "roadmaps" && currentRoadmapLevel) {
+                    // Ensure currentRoadmapLevel is a valid key for sections.roadmaps
+                    sections.roadmaps[currentRoadmapLevel].push(content);
+                    console.log(`Added to ${currentRoadmapLevel}: ${content}`); // Debug log
+                }
+            }
+        }
 
-        e.preventDefault();
+        console.log("Final sections:", sections); // Debug log
+        return sections;
+    };
 
-        try {
+    const { qualifiedJobs, skillGaps, roadmaps, freeResources, paidResources, freeLinks, paidLinks } = parseResponse(response);
 
-            const res = await axios.post("http://127.0.0.1:8000/career-map", {
+    return (
+        <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+            {/* Custom CSS for neon glow effects */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                .neon-glow {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-glow:hover {
+                    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 
+                                0 0 40px rgba(255, 255, 255, 0.3), 
+                                0 0 60px rgba(255, 255, 255, 0.2);
+                    transform: translateY(-2px);
+                }
+                .neon-glow-purple {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-glow-purple:hover {
+                    box-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 
+                                0 0 40px rgba(168, 85, 247, 0.4), 
+                                0 0 60px rgba(168, 85, 247, 0.2);
+                    transform: translateY(-2px);
+                }
+                .neon-glow-green {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-glow-green:hover {
+                    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 
+                                0 0 40px rgba(34, 197, 94, 0.4), 
+                                0 0 60px rgba(34, 197, 94, 0.2);
+                    transform: translateY(-2px);
+                }
+                .neon-glow-red {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-glow-red:hover {
+                    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 
+                                0 0 40px rgba(239, 68, 68, 0.4), 
+                                0 0 60px rgba(239, 68, 68, 0.2);
+                    transform: translateY(-2px);
+                }
+                .neon-glow-blue {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-glow-blue:hover {
+                    box-shadow: 0 0 20px rgba(99, 102, 241, 0.6), 
+                                0 0 40px rgba(99, 102, 241, 0.4), 
+                                0 0 60px rgba(99, 102, 241, 0.2);
+                    transform: translateY(-2px);
+                }
+                .neon-glow-orange {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-glow-orange:hover {
+                    box-shadow: 0 0 20px rgba(251, 146, 60, 0.6), 
+                                0 0 40px rgba(251, 146, 60, 0.4), 
+                                0 0 60px rgba(251, 146, 60, 0.2);
+                    transform: translateY(-2px);
+                }
+                .neon-input {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-input:hover {
+                    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 
+                                0 0 30px rgba(255, 255, 255, 0.2);
+                }
+                .neon-input:focus {
+                    box-shadow: 0 0 20px rgba(255, 255, 255, 0.6), 
+                                0 0 40px rgba(255, 255, 255, 0.3);
+                }
+                .neon-button {
+                    transition: all 0.3s ease-in-out;
+                }
+                .neon-button:hover {
+                    box-shadow: 0 0 20px rgba(147, 51, 234, 0.6), 
+                                0 0 40px rgba(147, 51, 234, 0.4), 
+                                0 0 60px rgba(147, 51, 234, 0.2);
+                    transform: translateY(-2px) scale(1.02);
+                }
+                `
+            }} />
+            {/* Cosmic Background */}
+            <div 
+                className="absolute inset-0 w-full h-full"
+                style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
+                }}
+            />
 
-                skills,
+            {/* Mountain Silhouettes */}
+            <div className="absolute bottom-0 left-0 w-full">
+                <svg viewBox="0 0 1200 300" className="w-full h-32 opacity-30">
+                    <polygon fill="#4c1d95" points="0,300 0,200 100,150 200,180 300,120 400,160 500,100 600,140 700,80 800,120 900,60 1000,100 1100,40 1200,80 1200,300"/>
+                    <polygon fill="#5b21b6" points="0,300 0,220 150,170 250,200 350,140 450,180 550,120 650,160 750,100 850,140 950,80 1050,120 1150,60 1200,100 1200,300"/>
+                </svg>
+            </div>
 
-                degree,
+            <div className="relative z-10 w-full max-w-7xl mx-auto">
+                {/* Main Form */}
+                <div className="flex flex-col items-center">
+                    <h1 className="text-5xl font-bold text-white mb-8 text-center tracking-wider">
+                        Career Mapper
+                    </h1>
+                    
+                    <div 
+                        className="relative p-8 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 w-full max-w-md neon-glow"
+                        style={{
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)'
+                        }}
+                    >
+                        <div className="space-y-6">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={skills}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSkills(e.target.value)}
+                                    placeholder="Your Skills"
+                                    className="w-full px-6 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300 text-lg neon-input"
+                                    required
+                                />
+                                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70">
+                                    👤
+                                </div>
+                            </div>
 
-            });
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={degree}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDegree(e.target.value)}
+                                    placeholder="Your Degree"
+                                    className="w-full px-6 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300 text-lg neon-input"
+                                    required
+                                />
+                                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/70">
+                                    🎓
+                                </div>
+                            </div>
 
-            setResponse(res.data.response);
+                            <button
+                                type="submit"
+                                onClick={handleSubmit}
+                                className="w-full bg-white text-purple-700 py-4 rounded-2xl font-semibold text-lg hover:bg-white/90 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg neon-button"
+                            >
+                                Map My Career
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-        } catch (err) {
+                {/* Results Section */}
+                {response && (
+                    <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8 px-4">
+                        {/* Qualified Jobs */}
+                        <div 
+                            className="p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-green"
+                            style={{
+                                background: 'rgba(34, 197, 94, 0.15)',
+                                boxShadow: '0 8px 32px 0 rgba(34, 197, 94, 0.2)'
+                            }}
+                        >
+                            <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+                                <span className="mr-3">✅</span>
+                                Qualified Jobs
+                            </h2>
+                            <ul className="space-y-3">
+                                {qualifiedJobs.map((job: string, idx: number) => (
+                                    <li key={idx} className="text-white/90 text-lg flex items-center">
+                                        <div className="w-2 h-2 bg-green-400 rounded-full mr-3 flex-shrink-0"></div>
+                                        {job}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
 
-            console.error(err);
+                        {/* Skill Gaps */}
+                        <div 
+                            className="p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-red"
+                            style={{
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                boxShadow: '0 8px 32px 0 rgba(239, 68, 68, 0.2)'
+                            }}
+                        >
+                            <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
+                                <span className="mr-3">⚠️</span>
+                                Skill Gaps
+                            </h2>
+                            <ul className="space-y-3">
+                                {skillGaps.map((gap: string, idx: number) => (
+                                    <li key={idx} className="text-white/90 text-lg flex items-center">
+                                        <div className="w-2 h-2 bg-red-400 rounded-full mr-3 flex-shrink-0"></div>
+                                        {gap}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
 
-        }
+                        {/* Career Roadmaps */}
+                        <div 
+                            className="lg:col-span-2 p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-orange"
+                            style={{
+                                background: 'rgba(251, 146, 60, 0.15)',
+                                boxShadow: '0 8px 32px 0 rgba(251, 146, 60, 0.2)'
+                            }}
+                        >
+                            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                                <span className="mr-3">🗺️</span>
+                                Career Roadmaps
+                            </h2>
 
-    };
+                            <div className="grid md:grid-cols-3 gap-6">
+                                {/* Beginner Level */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-semibold text-white flex items-center">
+                                        <span className="mr-2">📍</span>
+                                        Beginner Level
+                                    </h3>
+                                    <p className="text-white/70 text-sm">(0-6 months)</p>
+                                    <ul className="space-y-3">
+                                        {roadmaps.beginner.map((item: string, idx: number) => (
+                                            <li key={idx} className="text-white/90 text-sm flex items-start">
+                                                <div className="w-2 h-2 bg-orange-300 rounded-full mr-3 flex-shrink-0 mt-2"></div>
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
 
+                                {/* Intermediate Level */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-semibold text-white flex items-center">
+                                        <span className="mr-2">📍</span>
+                                        Intermediate Level
+                                    </h3>
+                                    <p className="text-white/70 text-sm">(6-18 months)</p>
+                                    <ul className="space-y-3">
+                                        {roadmaps.intermediate.map((item: string, idx: number) => (
+                                            <li key={idx} className="text-white/90 text-sm flex items-start">
+                                                <div className="w-2 h-2 bg-orange-400 rounded-full mr-3 flex-shrink-0 mt-2"></div>
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
 
+                                {/* Advanced Level */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xl font-semibold text-white flex items-center">
+                                        <span className="mr-2">📍</span>
+                                        Advanced Level
+                                    </h3>
+                                    <p className="text-white/70 text-sm">(18+ months)</p>
+                                    <ul className="space-y-3">
+                                        {roadmaps.advanced.map((item: string, idx: number) => (
+                                            <li key={idx} className="text-white/90 text-sm flex items-start">
+                                                <div className="w-2 h-2 bg-orange-500 rounded-full mr-3 flex-shrink-0 mt-2"></div>
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
 
-    const parseResponse = (response: string) => {
+                        {/* Learning Resources */}
+                        <div 
+                            className="lg:col-span-2 p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-blue"
+                            style={{
+                                background: 'rgba(99, 102, 241, 0.15)',
+                                boxShadow: '0 8px 32px 0 rgba(99, 102, 241, 0.2)'
+                            }}
+                        >
+                            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                                <span className="mr-3">📚</span>
+                                Learning Resources
+                            </h2>
 
-    const sections = {
+                            <div className="grid md:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                                        <span className="mr-2">🆓</span>
+                                        Free Resources
+                                    </h3>
+                                    <ul className="space-y-3">
+                                        {freeResources.map((res: string, idx: number) => (
+                                            <li key={idx} className="text-white/90 text-lg flex items-center">
+                                                <div className="w-2 h-2 bg-blue-400 rounded-full mr-3 flex-shrink-0"></div>
+                                                <span dangerouslySetInnerHTML={{
+                                                    __html: res.replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+                                                }} />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
 
-        qualifiedJobs: [] as string[],
+                                <div>
+                                    <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                                        <span className="mr-2">💰</span>
+                                        Paid Resources
+                                    </h3>
+                                    <ul className="space-y-3">
+                                        {paidResources.map((res: string, idx: number) => (
+                                            <li key={idx} className="text-white/90 text-lg flex items-center">
+                                                <div className="w-2 h-2 bg-purple-400 rounded-full mr-3 flex-shrink-0"></div>
+                                                <span dangerouslySetInnerHTML={{
+                                                    __html: res.replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+                                                }} />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
 
-        skillGaps: [] as string[],
+                        {/* Resource Links */}
+                        {(freeLinks.length > 0 || paidLinks.length > 0) && (
+                            <div 
+                                className="lg:col-span-2 p-6 rounded-3xl shadow-2xl backdrop-blur-md border border-white/20 neon-glow-purple"
+                                style={{
+                                    background: 'rgba(168, 85, 247, 0.15)',
+                                    boxShadow: '0 8px 32px 0 rgba(168, 85, 247, 0.2)'
+                                }}
+                            >
+                                <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                                    <span className="mr-3">🔗</span>
+                                    Resource Links
+                                </h2>
 
-        freeResources: [] as string[],
+                                <div className="grid md:grid-cols-2 gap-8">
+                                    {freeLinks.length > 0 && (
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-white mb-4">🆓 Free Links</h3>
+                                            <ul className="space-y-2">
+                                                {freeLinks.map((link: string, idx: number) => (
+                                                    <li key={idx}>
+                                                        <a 
+                                                            href={link} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-blue-300 hover:text-blue-200 underline break-all transition-colors duration-200"
+                                                        >
+                                                            {link}
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
 
-        paidResources: [] as string[],
-
-        freeLinks: [] as string[],
-
-        paidLinks: [] as string[]
-
-    };
-
-
-
-    const lines = response.split("\n").map(line => line.trim());
-
-    let currentSection = "";
-
-    let isFree = true;
-
-
-
-    for (const line of lines) {
-
-        if (line.startsWith("✅")) currentSection = "qualifiedJobs";
-
-        else if (line.startsWith("⚠️")) currentSection = "skillGaps";
-
-        else if (line.startsWith("📚")) currentSection = "learningResources";
-
-        else if (line.toLowerCase().includes("free resources")) isFree = true;
-
-        else if (line.toLowerCase().includes("paid resources")) isFree = false;
-
-        else if (line.startsWith("- [") && currentSection === "learningResources") {
-
-            const match = line.match(/\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
-
-            if (match) {
-
-                if (isFree) {
-
-                    sections.freeResources.push(line);
-
-                    sections.freeLinks.push(match[2]);
-
-                } else {
-
-                    sections.paidResources.push(line);
-
-                    sections.paidLinks.push(match[2]);
-
-                }
-
-            }
-
-        } else if (line.startsWith("-")) {
-
-            if (currentSection === "qualifiedJobs") sections.qualifiedJobs.push(line.slice(1).trim());
-
-            else if (currentSection === "skillGaps") sections.skillGaps.push(line.slice(1).trim());
-
-        }
-
-    }
-
-
-
-    return sections;
-
+                                    {paidLinks.length > 0 && (
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-white mb-4">💰 Paid Links</h3>
+                                            <ul className="space-y-2">
+                                                {paidLinks.map((link: string, idx: number) => (
+                                                    <li key={idx}>
+                                                        <a 
+                                                            href={link} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-purple-300 hover:text-purple-200 underline break-all transition-colors duration-200"
+                                                        >
+                                                            {link}
+                                                        </a>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 };
-
-
-
-   const { qualifiedJobs, skillGaps, freeResources, paidResources, freeLinks, paidLinks } = parseResponse(response);
-
-
-
-
-
-
-
-    return (
-
-        <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 p-6 flex flex-col items-center justify-center">
-
-            <h1 className="text-4xl font-bold text-indigo-700 mb-6 drop-shadow-md">🎯 SkillPilot: Career Mapper</h1>
-
-            <form
-
-                onSubmit={handleSubmit}
-
-                className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg space-y-4 glow-on-hover"
-
-                style={{ '--glow-color': '#a78bfa' ,
-
-                  backgroundColor: 'rgba(255, 255, 255, 1.0)'
-
-                }}
-
-            >
-
-                <div>
-
-                    <label className="block text-lg font-semibold mb-1 text-gray-700 opacity-100">Your Skills</label>
-
-                    <input
-
-                        type="text"
-
-                        value={skills}
-
-                        onChange={(e) => setSkills(e.target.value)}
-
-                        placeholder="e.g., Python, Data Analysis"
-
-                        className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 glow-on-hover opacity-100"
-
-                        style={{ '--glow-color': '#6366f1' }}
-
-                        required
-
-                    />
-
-                </div>
-
-                <div>
-
-                    <label className="block text-lg font-semibold mb-1 text-gray-700 opacity-100">Your Degree</label>
-
-                    <input
-
-                        type="text"
-
-                        value={degree}
-
-                        onChange={(e) => setDegree(e.target.value)}
-
-                        placeholder="e.g., B.Tech in AI & DS"
-
-                        className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 glow-on-hover opacity-100"
-
-                        style={{ '--glow-color': '#6366f1' }}
-
-                        required
-
-                    />
-
-                </div>
-
-                <button
-
-                    type="submit"
-
-                    className="w-full bg-indigo-600 text-white py-2 rounded-xl
-
-                               hover:bg-indigo-700
-
-                               transition-all duration-300 ease-in-out
-
-                               transform hover:scale-105
-
-                               active:scale-95 glow-on-hover opacity-100"
-
-                    style={{ '--glow-color': '#4f46e5' }}
-
-                >
-
-                    🔍 Map My Career
-
-                </button>
-
-            </form>
-
-
-
-            {response && (
-
-  <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-6xl">
-
-
-
-    {/* Qualified Jobs */}
-
-    <div className="bg-green-50 rounded-2xl p-6 shadow-xl glow-on-hover" style={{ '--glow-color': '#22c55e' }}>
-
-      <h2 className="text-2xl font-bold text-green-700 mb-4">✅ Qualified Jobs</h2>
-
-      <ul className="list-disc list-inside text-lg text-gray-800 space-y-2">
-
-        {qualifiedJobs.map((job, idx) => <li key={idx}>{job}</li>)}
-
-      </ul>
-
-    </div>
-
-
-
-    {/* Skill Gaps */}
-
-    <div className="bg-red-50 rounded-2xl p-6 shadow-xl glow-on-hover" style={{ '--glow-color': '#ef4444' }}>
-
-      <h2 className="text-2xl font-bold text-red-600 mb-4">⚠️ Skill Gaps</h2>
-
-      <ul className="list-disc list-inside text-lg text-gray-800 space-y-2">
-
-        {skillGaps.map((gap, idx) => <li key={idx}>{gap}</li>)}
-
-      </ul>
-
-    </div>
-
-
-
-    {/* Learning Resources */}
-
-    <div className="bg-indigo-50 rounded-2xl p-6 shadow-xl col-span-1 md:col-span-2 glow-on-hover" style={{ '--glow-color': '#6366f1' }}>
-
-      <h2 className="text-2xl font-bold text-indigo-700 mb-4">📚 Learning Resources</h2>
-
-
-
-      <div className="mb-6">
-
-        <h3 className="text-xl font-semibold text-indigo-800 mb-2">🆓 Free Resources</h3>
-
-        <ul className="list-disc list-inside text-lg text-gray-800 space-y-2">
-
-          {freeResources.map((res, idx) => (
-
-            <li
-
-              key={idx}
-
-              dangerouslySetInnerHTML={{
-
-                __html: res.replace(/\[(.*?)\]\((.*?)\)/g, '$1')
-
-              }}
-
-            />
-
-          ))}
-
-        </ul>
-
-      </div>
-
-
-
-      <div>
-
-        <h3 className="text-xl font-semibold text-indigo-800 mb-2">💰 Paid Resources</h3>
-
-        <ul className="list-disc list-inside text-lg text-gray-800 space-y-2">
-
-          {paidResources.map((res, idx) => (
-
-            <li
-
-              key={idx}
-
-              dangerouslySetInnerHTML={{
-
-                __html: res.replace(/\[(.*?)\]\((.*?)\)/g, '$1')
-
-              }}
-
-            />
-
-          ))}
-
-        </ul>
-
-      </div>
-
-    </div>
-
-
-
-    {/* All Resource Links */}
-
-    <div className="bg-purple-50 rounded-2xl p-6 shadow-xl col-span-1 md:col-span-2 glow-on-hover" style={{ '--glow-color': '#a78bfa' }}>
-
-      <h2 className="text-2xl font-bold text-purple-800 mb-4">🔗 All Resource Links</h2>
-
-
-
-      <div className="mb-6">
-
-        <h3 className="text-lg font-semibold text-purple-700 mb-2">🆓 Free Resource Links</h3>
-
-        <ul className="list-disc list-inside text-lg text-blue-700 space-y-2">
-
-          {freeLinks.map((link, idx) => (
-
-            <li key={idx}>
-
-              <a href={link} target="_blank" rel="noopener noreferrer" className="underline">{link}</a>
-
-            </li>
-
-          ))}
-
-        </ul>
-
-      </div>
-
-
-
-      <div>
-
-        <h3 className="text-lg font-semibold text-purple-700 mb-2">💰 Paid Resource Links</h3>
-
-        <ul className="list-disc list-inside text-lg text-blue-700 space-y-2">
-
-          {paidLinks.map((link, idx) => (
-
-            <li key={idx}>
-
-              <a href={link} target="_blank" rel="noopener noreferrer" className="underline">{link}</a>
-
-            </li>
-
-          ))}
-
-        </ul>
-
-      </div>
-
-    </div>
-
-  </div>
-
-)}
-
-
-
-
-
-        </div>
-
-    );
-
-};
-
-
 
 export default CareerForm;
