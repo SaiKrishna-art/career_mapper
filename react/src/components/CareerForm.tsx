@@ -191,7 +191,7 @@ const CareerForm = () => {
                                     type="text"
                                     value={skills}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSkills(e.target.value)}
-                                    placeholder="Your Skills"
+                                    placeholder="Your Skills (e.g., python, Data analysis)"
                                     className="w-full px-6 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300 text-lg neon-input"
                                     required
                                 />
@@ -205,7 +205,7 @@ const CareerForm = () => {
                                     type="text"
                                     value={degree}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDegree(e.target.value)}
-                                    placeholder="Your Degree"
+                                    placeholder="Your Degree (e.g., B.Tech in AI&DS )"
                                     className="w-full px-6 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300 text-lg neon-input"
                                     required
                                 />
