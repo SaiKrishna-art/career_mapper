@@ -82,5 +82,5 @@ Degree: {data.degree}
 """
     model = genai.GenerativeModel(model_name="gemini-1.5-flash")
     response = model.generate_content(prompt)
-
+ 
     return {"response": response.text}
