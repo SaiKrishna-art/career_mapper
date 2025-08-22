@@ -14,7 +14,7 @@ interface ParsedSections {
     freeLinks: string[];
     paidLinks: string[];
 }
-
+ 
 const CareerForm = () => {
     const [skills, setSkills] = useState<string>("");
     const [degree, setDegree] = useState<string>("");
