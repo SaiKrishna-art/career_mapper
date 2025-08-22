@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-genai.configure(api_key="AIzaSyBOnOJ4i0zUSNX4dJK9fFHbuUc_hd5tndg")  # This should be your Bard/Gemini API key
+genai.configure(api_key="AIzaSyDS7UeevyByQdUkcxCKpEVgQ_FSGQnakFI")  # This should be your Bard/Gemini API key
 
 app = FastAPI()
 
