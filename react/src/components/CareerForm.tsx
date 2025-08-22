@@ -27,7 +27,7 @@ const CareerForm = () => {
         setResponse(""); // Clear previous response
 
         try {
-            const res = await fetch("https://career-mapper-xlmahj91p-saikrishna-arts-projects.vercel.app/career-mapper", {
+            const res = await fetch("https://career-mapper-xlmahj91p-saikrishna-arts-projects.vercel.app", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
